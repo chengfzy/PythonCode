@@ -1,0 +1,17 @@
+# share
+sudo mkdir /mnt/share
+sudo mount -t vboxsf router /mnt/share
+sharing /mnt/share vboxsf rw,gid=100,uid=1000,auto 0 0
+
+# fcitx wbpy
+sudo add-apt-repository ppa:fcitx-team/nightly
+sudo apt-get update
+sudo apt-get install fcitx-sogoupinyin
+
+# shadowsocks
+sudo add-apt-repository ppa:hzwhuang/ss-qt5
+sudo apt-get update
+sudo apt-get install shadowsocks-qt5
+
+
+widget->setStyleSheet("border-width: 2px; border-style: solid; border-color: red");
