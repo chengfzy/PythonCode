@@ -1,7 +1,6 @@
 from scipy.sparse import diags
 from scipy.sparse.linalg import cg
-from matplotlib.pyplot import np
-import FastBilateralSolver.bilateralgrid
+from bilateralgrid import *
 
 def bistochastize(grid, maxiter=10):
     """Compute diagonal matrices to bistochastize a bilateral grid"""

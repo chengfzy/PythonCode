@@ -6,24 +6,41 @@ import matplotlib.pyplot as plt
 
 class ExposureCorrection:
     def __init__(self):
-        self.folder = 'D:/testdata/970'    # image folder
-        self.N = 8                          # image number
-        # read image
-        self.images = self._read_image(self.folder, self.N)
+        n = 1          # test case
+        if n == 0:
+            self.folder = 'D:/testdata/970'     # image folder
+            self.N = 8                          # image number
+            self.images = []
+            self._read_image()
+            self.overlap_width = int(self.images[0].shape[1] * 2 / 3)     # overlap width
+        elif n == 1:
+            self.folder = 'D:/testdata/NYT/500' # image folder
+            self.N = 4                          # image number
+            self.images = []
+            self._read_image()
+            self.overlap_width = int(self.images[0].shape[1] / 2)     # overlap width
+
+        # stack all images
+        stack_image = np.hstack((tuple(self.images)))
+        cv2.imwrite(self.folder + '/statck.png', stack_image)
 
     def test_jump(self):
         """ exposure correction method by JUMP """
         # solve the exposure gain for each image
         overlap, intensity = self.split_image()
-        func = lambda x: self._min_func(x, intensity)
+        func = lambda x: self._min_func(x, intensity, epsilon=0.01)
         g0 = np.ones(self.N)
         res = opt.minimize(func, g0, method='Powell', options={'xtol': 1e-8, 'disp': True})
         g = res.x
         print("g = ", g)
 
+        # correct g so that mean(g) = 1
+        g = g * 1 / np.average(g)
+        print("After Scale, g = ", g)
+
         # correction and write to file
         image_size = self.images[0].shape
-        split_col0 = int(image_size[1] / 3)
+        split_col0 = self.overlap_width
         split_col1 = image_size[1] - split_col0
         for n in range(self.N):
             img = self.images[n].astype(np.float32)
@@ -53,9 +70,10 @@ class ExposureCorrection:
         split each image into left and right region, and calculate the average intensity
         """
         image_size = self.images[0].shape
-        split_col0 = int(image_size[1] / 3)
+        split_col0 = self.overlap_width
         split_col1 = image_size[1] - split_col0
-        row_range = [int(image_size[0] * 0.2), int(image_size[0] * 0.8)]
+        # row_range = np.arange(int(image_size[0] * 0.2), int(image_size[0] * 0.8))
+        row_range = np.arange(int(image_size[0] * 0), int(image_size[0] * 1))
 
         overlap = []
         intensity = np.zeros((self.N, 2))
@@ -79,6 +97,10 @@ class ExposureCorrection:
             intensity[n, 1] = np.sum(right[:, :, :-1]) / np.count_nonzero(mask) / 3
             overlap.append([left, right])
 
+            # save overlap file before modify
+            cv2.imwrite(self.folder + '/overlap0_' + str(n) + '_L.png', left)
+            cv2.imwrite(self.folder + '/overlap0_' + str(n) + '_R.png', right)
+
             # plt.figure()
             # plt.subplot(121)
             # plt.imshow(left)
@@ -90,34 +112,19 @@ class ExposureCorrection:
         # plt.show(block=True)
         return overlap, intensity
 
-    @staticmethod
-    def _file_at(folder, index):
+    def _file_at(self, index):
         """image file name at index"""
-        file = folder
+        file = self.folder
         if index == 0:
             file += '/modelseq0_idZCAM00.png'
-        elif index == 1:
-            file += '/modelseq1_idZCAM07.png'
-        elif index == 2:
-            file += '/modelseq2_idZCAM06.png'
-        elif index == 3:
-            file += '/modelseq3_idZCAM05.png'
-        elif index == 4:
-            file += '/modelseq4_idZCAM04.png'
-        elif index == 5:
-            file += '/modelseq5_idZCAM03.png'
-        elif index == 6:
-            file += '/modelseq6_idZCAM02.png'
-        elif index == 7:
-            file += '/modelseq7_idZCAM01.png'
+        else:
+            file += '/modelseq' + str(index) + '_idZCAM0' + str(self.N - index) + '.png'
         return file
 
-    def _read_image(self, folder, image_num):
+    def _read_image(self):
         """read all image to list"""
-        images = []
-        for i in range(image_num):
-            images.append(cv2.imread(self._file_at(folder, i), cv2.IMREAD_UNCHANGED))
-        return images
+        for i in range(self.N):
+            self.images.append(cv2.imread(self._file_at(i), cv2.IMREAD_UNCHANGED))
 
     def _calc_avg_intensity(self, img, guide):
         """

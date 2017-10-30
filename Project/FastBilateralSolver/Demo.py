@@ -1,7 +1,6 @@
 from matplotlib import *
 from matplotlib.pyplot import *
-from FastBilateralSolver.bilateralgrid import *
-from FastBilateralSolver.bilateralSolver import *
+from bilateralSolver import *
 from cv2 import imread
 
 rcParams['image.interpolation'] = 'nearest'
